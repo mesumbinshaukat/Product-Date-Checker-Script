@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; border-radius: 10px; text-align: center; }
+        .header h1 { margin: 0 0 10px 0; font-size: 28px; }
+        .header p { margin: 0; font-size: 14px; opacity: 0.9; }
+        .content { background: #f9f9f9; padding: 20px; margin-top: 20px; border-radius: 10px; }
+        .summary { background: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; border-left: 4px solid #667eea; }
+        
+        /* Table Styles */
+        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        thead { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        th { padding: 15px 10px; text-align: left; font-weight: 600; font-size: 14px; }
+        td { padding: 15px 10px; border-bottom: 1px solid #e0e0e0; font-size: 13px; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: #f5f5f5; }
+        
+        /* Site name column */
+        .site-cell { width: 120px; text-align: left; font-weight: 600; color: #667eea; }
+        
+        /* Product link column */
+        .product-link { max-width: 250px; word-break: break-word; }
+        .product-link a { color: #667eea; text-decoration: none; font-weight: 500; }
+        .product-link a:hover { text-decoration: underline; }
+        
+        /* Date columns */
+        .date-cell { font-family: "Courier New", monospace; font-weight: 600; white-space: nowrap; }
+        .old-date { color: #999; }
+        .new-date { color: #333; }
+        
+        /* Status column */
+        .status-cell { text-align: center; width: 100px; }
+        .status-changed { color: #4CAF50; font-size: 24px; }
+        .status-unchanged { color: #f44336; font-size: 24px; }
+        
+        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px; text-align: center; }
+        
+        /* Mobile Responsive - Strict */
+        @media only screen and (max-width: 768px) {
+            .container { padding: 10px !important; max-width: 100% !important; }
+            .header { padding: 20px 10px !important; }
+            .header h1 { font-size: 20px !important; }
+            .header p { font-size: 12px !important; }
+            .content { padding: 10px !important; }
+            .summary { font-size: 12px !important; padding: 10px !important; }
+            table { font-size: 11px !important; }
+            th, td { padding: 8px 4px !important; font-size: 11px !important; }
+            .site-cell { width: 80px !important; font-size: 10px !important; }
+            .product-link { max-width: 120px !important; font-size: 10px !important; word-break: break-all !important; }
+            .date-cell { font-size: 10px !important; }
+            .status-cell { width: 40px !important; }
+            .status-changed, .status-unchanged { font-size: 16px !important; }
+        }
+        
+        @media only screen and (max-width: 480px) {
+            .container { padding: 5px !important; }
+            .header { padding: 15px 5px !important; border-radius: 5px !important; }
+            .header h1 { font-size: 18px !important; }
+            .content { padding: 5px !important; border-radius: 5px !important; }
+            .summary { font-size: 11px !important; padding: 8px !important; margin-bottom: 10px !important; }
+            table { font-size: 10px !important; }
+            th, td { padding: 6px 2px !important; font-size: 10px !important; }
+            .site-cell { width: 60px !important; font-size: 9px !important; }
+            .product-link { max-width: 100px !important; font-size: 9px !important; }
+            .date-cell { font-size: 9px !important; white-space: normal !important; }
+            .status-cell { width: 35px !important; }
+            .status-changed, .status-unchanged { font-size: 14px !important; }
+            .footer { font-size: 10px !important; padding: 10px 5px !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Product Date Checker Report</h1>
+            <p>Generated on October 14, 2025 at 3:14 PM</p>
+        </div>
+        
+        <div class="content"><div class="summary"><strong style="color: #4CAF50;">⚠️ 4 product(s) changed</strong> | <strong style="color: #2196F3;">0 product(s) unchanged</strong> | <strong>Total: 4 products monitored</strong></div><div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th class="site-cell">Site</th>
+                    <th class="product-link">Product Link</th>
+                    <th>Old Date</th>
+                    <th>Current Date</th>
+                    <th class="status-cell">Status</th>
+                </tr>
+            </thead>
+            <tbody><tr>
+            <td class="site-cell">Assuredperformance</td>
+            <td class="product-link"><a href="https://assuredperformance.ie/dbsc99a" target="_blank">https://assuredperformance.ie/dbsc99a</a></td>
+            <td class="date-cell old-date">12/10/2025</td>
+            <td class="date-cell new-date">13/10/2025</td>
+            <td class="status-cell"><span class="status-changed" title="Date Changed">✓</span></td>
+        </tr><tr>
+            <td class="site-cell">Ebs</td>
+            <td class="product-link"><a href="https://www.ebs.co.uk/dbsc99a" target="_blank">https://www.ebs.co.uk/dbsc99a</a></td>
+            <td class="date-cell old-date">12/10/2025</td>
+            <td class="date-cell new-date">13/10/2025</td>
+            <td class="status-cell"><span class="status-changed" title="Date Changed">✓</span></td>
+        </tr><tr>
+            <td class="site-cell">Aastb</td>
+            <td class="product-link"><a href="https://www.aastb.com/dbsc99a-xray" target="_blank">https://www.aastb.com/dbsc99a-xray</a></td>
+            <td class="date-cell old-date">12/10/2025</td>
+            <td class="date-cell new-date">14/10/2025</td>
+            <td class="status-cell"><span class="status-changed" title="Date Changed">✓</span></td>
+        </tr><tr>
+            <td class="site-cell">Ebs-europe</td>
+            <td class="product-link"><a href="https://ebs-europe.nl/dbsc99a-hol" target="_blank">https://ebs-europe.nl/dbsc99a-hol</a></td>
+            <td class="date-cell old-date">12/10/2025</td>
+            <td class="date-cell new-date">13/10/2025</td>
+            <td class="status-cell"><span class="status-changed" title="Date Changed">✓</span></td>
+        </tr></tbody>
+        </table>
+    </div>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated report from the Product Date Checker script.</p>
+            <p>Script Location: /home/u308096205/date_checker/check_dates.php</p>
+        </div>
+    </div>
+</body>
+</html>
