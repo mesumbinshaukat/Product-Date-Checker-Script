@@ -37,7 +37,7 @@ SMTP_USER='your-email@example.com'
 SMTP_PASS='your-password'
 SMTP_HOSTNAME='smtp.gmail.com'
 SMTP_PORT=465
-RECIPIENT_EMAIL='sadiq.muneeb1234@gmail.com,masumbinshaukat@gmail.com'
+RECIPIENT_EMAIL='example1@gmail.com,example2@gmail.com'
 ```
 
 **Note**: For multiple recipients, separate email addresses with commas in `RECIPIENT_EMAIL`

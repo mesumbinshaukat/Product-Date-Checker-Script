@@ -76,7 +76,7 @@ date_checker_script/
 Server: smtp.gmail.com
 Port: 465 (SSL)
 From: [REDACTED]
-Recipients: sadiq.muneeb1234@gmail.com, masumbinshaukat@gmail.com
+Recipients: example1@gmail.com, example2@gmail.com
 ```
 
 ### Monitored Products
@@ -146,9 +146,9 @@ Comparing with previous day's data...
 ✓ Data logged to: /home/u308096205/date_checker/logs/product_dates.json
 
 Sending email notification...
-  ✓ Recipient accepted: sadiq.muneeb1234@gmail.com
-  ✓ Recipient accepted: masumbinshaukat@gmail.com
-✓ Email sent successfully to: sadiq.muneeb1234@gmail.com,masumbinshaukat@gmail.com
+  ✓ Recipient accepted: example1@gmail.com
+  ✓ Recipient accepted: example2@gmail.com
+✓ Email sent successfully to: example1@gmail.com,example2@gmail.com
 
 === Completed at: 2025-10-14 15:14:29 ===
 ```
