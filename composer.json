@@ -1,7 +1,0 @@
-{
-    "name": "mesum/product-date-checker",
-    "description": "Product Date Checker with SSH Support",
-    "require": {
-        "phpseclib/phpseclib": "^3.0"
-    }
-}
