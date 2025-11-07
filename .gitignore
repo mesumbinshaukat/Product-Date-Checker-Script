@@ -1,0 +1,14 @@
+.env
+product_dates.json
+last_email.html
+
+# Composer dependencies
+/vendor/
+composer.lock
+
+# Logs and temporary files
+/logs/*.txt
+/logs/*.ps1
+/logs/*.bat
+/logs/*.vbs
+vendor
