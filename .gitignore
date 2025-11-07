@@ -1,6 +1,6 @@
 .env
 product_dates.json
-last_email.html
+./last_email.html
 
 # Composer dependencies
 /vendor/
