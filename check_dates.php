@@ -4,6 +4,11 @@
  * Monitors product dates from multiple URLs and sends email notifications on changes
  */
 
+// Load Composer autoloader for phpseclib
+require_once __DIR__ . '/vendor/autoload.php';
+
+use phpseclib3\Net\SSH2;
+
 // Load environment variables
 function loadEnv($filePath) {
     if (!file_exists($filePath)) {
@@ -25,16 +30,11 @@ function loadEnv($filePath) {
     return $env;
 }
 
-// Product URLs to monitor
-$productUrls = [
-    'https://assuredperformance.ie/dbsc99a',
-    'https://www.ebs.co.uk/dbsc99a',
-    'https://www.aastb.com/dbsc99a-xray',
-    'https://ebs-europe.nl/dbsc99a-hol'
-];
-
 // Load environment variables
 $env = loadEnv(__DIR__ . '/.env');
+
+// Product URLs to monitor (loaded from .env)
+$productUrls = array_map('trim', explode(',', $env['PRODUCT_URLS']));
 
 // Configuration
 $logDir = __DIR__ . '/logs';
@@ -266,9 +266,118 @@ function sendEmail($env, $subject, $body) {
 }
 
 /**
+ * Check remote file modification time via SSH
+ */
+function checkRemoteFileModification($env) {
+    $sshHost = $env['SSH_HOST'];
+    $sshPort = (int)$env['SSH_PORT'];
+    $sshUser = $env['SSH_USER'];
+    $sshPass = $env['SSH_PASS'] ?? '';
+    $remoteFile = $env['SSH_REMOTE_FILE'];
+    
+    // Local file to store the last known timestamp
+    $timestampFile = __DIR__ . '/logs/remote_file_timestamp.txt';
+    
+    echo "Checking remote file modification via SSH...\n";
+    echo "  Host: {$sshUser}@{$sshHost}:{$sshPort}\n";
+    echo "  File: {$remoteFile}\n";
+    
+    try {
+        // Create SSH connection using phpseclib
+        $ssh = new SSH2($sshHost, $sshPort);
+        $ssh->setTimeout(10);
+        
+        // Login with password
+        if (!$ssh->login($sshUser, $sshPass)) {
+            return [
+                'success' => false,
+                'error' => 'SSH authentication failed',
+                'changed' => false
+            ];
+        }
+        
+        echo "  ✓ SSH connection established\n";
+        
+        // Execute stat command to get file modification timestamp
+        $output = $ssh->exec("stat -c %Y {$remoteFile}");
+        
+        // Disconnect
+        $ssh->disconnect();
+        
+        if ($output === false || trim($output) === '') {
+            return [
+                'success' => false,
+                'error' => 'Failed to execute remote command',
+                'changed' => false
+            ];
+        }
+        
+        $newTimestamp = trim($output);
+        
+        // Validate that we got a numeric timestamp
+        if (!is_numeric($newTimestamp)) {
+            return [
+                'success' => false,
+                'error' => "Invalid timestamp received: {$newTimestamp}",
+                'changed' => false
+            ];
+        }
+        
+        echo "  ✓ Current remote file timestamp: {$newTimestamp}\n";
+        
+        // Convert timestamp to readable date
+        $readableDate = date('Y-m-d H:i:s', (int)$newTimestamp);
+        echo "  ✓ Last modified: {$readableDate}\n";
+        
+        // Load previous timestamp if exists
+        $oldTimestamp = null;
+        $oldReadableDate = 'N/A';
+        $hasChanged = false;
+        
+        if (file_exists($timestampFile)) {
+            $oldTimestamp = trim(file_get_contents($timestampFile));
+            if (is_numeric($oldTimestamp)) {
+                $oldReadableDate = date('Y-m-d H:i:s', (int)$oldTimestamp);
+                echo "  ℹ Previous timestamp: {$oldTimestamp} ({$oldReadableDate})\n";
+                
+                // Compare timestamps
+                if ((int)$newTimestamp > (int)$oldTimestamp) {
+                    $hasChanged = true;
+                    echo "  ⚠ FILE MODIFIED! Remote file has been updated.\n";
+                } else {
+                    echo "  ✓ No changes detected.\n";
+                }
+            }
+        } else {
+            echo "  ℹ No previous timestamp found. This is the first check.\n";
+        }
+        
+        // Save new timestamp
+        file_put_contents($timestampFile, $newTimestamp);
+        
+        return [
+            'success' => true,
+            'changed' => $hasChanged,
+            'old_timestamp' => $oldTimestamp,
+            'new_timestamp' => $newTimestamp,
+            'old_date' => $oldReadableDate,
+            'new_date' => $readableDate,
+            'remote_file' => $remoteFile
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'error' => 'SSH connection error: ' . $e->getMessage(),
+            'changed' => false
+        ];
+    }
+}
+
+/**
  * Generate HTML email body with responsive table
  */
-function generateEmailBody($changes, $currentData, $previousData) {
+function generateEmailBody($changes, $currentData, $previousData, $sshCheckResult = null) {
     $html = '<!DOCTYPE html>
 <html>
 <head>
@@ -365,6 +474,21 @@ function generateEmailBody($changes, $currentData, $previousData) {
     }
     $html .= '<strong style="color: #2196F3;">' . $unchangedCount . ' product(s) unchanged</strong> | ';
     $html .= '<strong>Total: ' . $totalCount . ' products monitored</strong>';
+    
+    // Add SSH check result to summary
+    if ($sshCheckResult !== null && $sshCheckResult['success']) {
+        $html .= '<br><br>';
+        if ($sshCheckResult['changed']) {
+            $html .= '<strong style="color: #FF9800;">🔄 Remote file MODIFIED</strong> | ';
+        } else {
+            $html .= '<strong style="color: #4CAF50;">✓ Remote file unchanged</strong> | ';
+        }
+        $html .= '<strong>Last checked: ' . htmlspecialchars($sshCheckResult['new_date']) . '</strong>';
+    } elseif ($sshCheckResult !== null && !$sshCheckResult['success']) {
+        $html .= '<br><br>';
+        $html .= '<strong style="color: #f44336;">✗ SSH check failed: ' . htmlspecialchars($sshCheckResult['error']) . '</strong>';
+    }
+    
     $html .= '</div>';
     
     // Table
@@ -394,7 +518,9 @@ function generateEmailBody($changes, $currentData, $previousData) {
             <td class="date-cell new-date">' . htmlspecialchars($newDate) . '</td>
             <td class="status-cell">';
         
-        if ($hasChanged) {
+        // Show ✓ if no old date (first run) or if date changed
+        // Show ✗ only if old date exists and hasn't changed
+        if ($oldDate === 'N/A' || $hasChanged) {
             $html .= '<span class="status-changed" title="Date Changed">✓</span>';
         } else {
             $html .= '<span class="status-unchanged" title="No Change">✗</span>';
@@ -406,8 +532,28 @@ function generateEmailBody($changes, $currentData, $previousData) {
     
     $html .= '</tbody>
         </table>
-    </div>
-        </div>
+    </div>';
+    
+    // Add SSH check details section if available
+    if ($sshCheckResult !== null && $sshCheckResult['success']) {
+        $html .= '<div style="margin-top: 20px; background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF9800;">';
+        $html .= '<h3 style="margin-top: 0; color: #FF9800;">📁 Remote File Check (SSH)</h3>';
+        $html .= '<table style="width: 100%; border: none; box-shadow: none;">';
+        $html .= '<tr><td style="border: none; padding: 5px 0;"><strong>Remote File:</strong></td><td style="border: none; padding: 5px 0;">' . htmlspecialchars($sshCheckResult['remote_file']) . '</td></tr>';
+        $html .= '<tr><td style="border: none; padding: 5px 0;"><strong>Previous Modified:</strong></td><td style="border: none; padding: 5px 0;">' . htmlspecialchars($sshCheckResult['old_date']) . '</td></tr>';
+        $html .= '<tr><td style="border: none; padding: 5px 0;"><strong>Current Modified:</strong></td><td style="border: none; padding: 5px 0;">' . htmlspecialchars($sshCheckResult['new_date']) . '</td></tr>';
+        $html .= '<tr><td style="border: none; padding: 5px 0;"><strong>Status:</strong></td><td style="border: none; padding: 5px 0;">';
+        if ($sshCheckResult['changed']) {
+            $html .= '<span style="color: #FF9800; font-weight: bold;">⚠️ FILE MODIFIED</span>';
+        } else {
+            $html .= '<span style="color: #4CAF50; font-weight: bold;">✓ No Changes</span>';
+        }
+        $html .= '</td></tr>';
+        $html .= '</table>';
+        $html .= '</div>';
+    }
+    
+    $html .= '</div>
         
         <div class="footer">
             <p>This is an automated report from the Product Date Checker script.</p>
@@ -528,15 +674,41 @@ if (!empty($currentData)) {
     echo "✓ Data logged to: {$logFile}\n\n";
 }
 
+// Check remote file modification via SSH
+echo "\n";
+echo "=== SSH Remote File Check ===\n";
+$sshCheckResult = checkRemoteFileModification($env);
+echo "\n";
+
+// Update log file to include SSH check result
+if (!empty($currentData)) {
+    $today = date('Y-m-d');
+    
+    // Update today's entry with SSH check result
+    $logHistory[$today]['ssh_check'] = $sshCheckResult;
+    
+    // Save updated log file
+    $logData = [
+        'last_updated' => date('Y-m-d H:i:s'),
+        'history' => $logHistory
+    ];
+    
+    file_put_contents($logFile, json_encode($logData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    echo "✓ SSH check result logged\n\n";
+}
+
 // Send email notification
 if (!empty($currentData)) {
     echo "Sending email notification...\n";
     
-    $subject = !empty($changes) 
-        ? "⚠️ Product Date Changes Detected - " . date('Y-m-d')
-        : "✓ Product Date Check - No Changes - " . date('Y-m-d');
+    // Update subject to reflect SSH changes if any
+    $hasAnyChanges = !empty($changes) || ($sshCheckResult['success'] && $sshCheckResult['changed']);
     
-    $body = generateEmailBody($changes, $currentData, $previousData);
+    $subject = $hasAnyChanges
+        ? "⚠️ Changes Detected - " . date('Y-m-d')
+        : "✓ Check Complete - No Changes - " . date('Y-m-d');
+    
+    $body = generateEmailBody($changes, $currentData, $previousData, $sshCheckResult);
     
     // Save email HTML for debugging
     $debugEmailFile = __DIR__ . '/last_email.html';
